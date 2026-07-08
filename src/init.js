@@ -8,6 +8,7 @@ EBSRepeater.init = function (config) {
 
     if (config.config) {
         EBSRepeater.config = config.config;
+        EBSRepeater.debug.init();
     }
 
     if (config.rules) {
