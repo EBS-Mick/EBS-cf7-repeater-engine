@@ -2,13 +2,16 @@
  * Engine initialization
  */
 
+/*
+ * Engine initialization
+ */
+
 EBSRepeater.init = function (config) {
 
-    config = config || {};
+    config = config || EBSConfig;
 
     if (config.config) {
         EBSRepeater.config = config.config;
-        EBSRepeater.debug.init();
     }
 
     if (config.rules) {
@@ -19,8 +22,10 @@ EBSRepeater.init = function (config) {
         EBSRepeater.summary.setFields(config.summary);
     }
 
+    EBSRepeater.debug.init();
     EBSRepeater.events.bind();
     EBSRepeater.observer.start();
+
     this.refresh();
 
 };
