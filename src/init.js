@@ -19,7 +19,7 @@ EBSRepeater.init = function (config) {
     }
 
     EBSRepeater.events.bind();
-
+    EBSRepeater.observer.start();
     this.refresh();
 
 };
