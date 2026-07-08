@@ -79,7 +79,7 @@ EBSRepeater.rules = {
 
         }
 
-        children = rule.children || [];
+        children = rule.dependencies || rule.children || [];
 
         for (i = 0; i < children.length; i++) {
 
@@ -87,11 +87,15 @@ EBSRepeater.rules = {
 
             value = EBSRepeater.dom.getValue(row, child.field);
 
-            if (this.match(value, child.operator, child.value)) {
+            if (this.match(value, child.operator || "notEmpty", child.value)) {
 
-                for (j = 0; j < child.show.length; j++) {
+                if (child.show) {
 
-                    groups.push(child.show[j]);
+                    for (j = 0; j < child.show.length; j++) {
+
+                        groups.push(child.show[j]);
+
+                    }
 
                 }
 
@@ -104,97 +108,97 @@ EBSRepeater.rules = {
     },
 
     /**
- * Evaluates an operator.
- *
- * @param {*} value
- * @param {String} operator
- * @param {*} expected
- * @returns {Boolean}
- */
-match: function (value, operator, expected) {
+     * Evaluates an operator.
+     *
+     * @param {*} value
+     * @param {String} operator
+     * @param {*} expected
+     * @returns {Boolean}
+     */
+    match: function (value, operator, expected) {
 
-    var number;
-    var expectedNumber;
-    var i;
+        var number;
+        var expectedNumber;
+        var i;
 
-    switch (operator) {
+        switch (operator) {
 
-        case "notEmpty":
-            return value !== "";
+            case "notEmpty":
+                return value !== "";
 
-        case "empty":
-            return value === "";
+            case "empty":
+                return value === "";
 
-        case "equals":
-            return value === expected;
+            case "equals":
+                return value === expected;
 
-        case "notEquals":
-            return value !== expected;
+            case "notEquals":
+                return value !== expected;
 
-        case "contains":
-            return String(value).indexOf(expected) !== -1;
+            case "contains":
+                return String(value).indexOf(expected) !== -1;
 
-        case "startsWith":
-            return String(value).indexOf(expected) === 0;
+            case "startsWith":
+                return String(value).indexOf(expected) === 0;
 
-        case "endsWith":
-            value = String(value);
-            expected = String(expected);
+            case "endsWith":
+                value = String(value);
+                expected = String(expected);
 
-            return value.substring(
-                value.length - expected.length
-            ) === expected;
+                return value.substring(
+                    value.length - expected.length
+                ) === expected;
 
-        case "in":
+            case "in":
 
-            if (!EBSRepeater.utils.isArray(expected)) {
-                return false;
-            }
-
-            for (i = 0; i < expected.length; i++) {
-
-                if (value === expected[i]) {
-                    return true;
+                if (!EBSRepeater.utils.isArray(expected)) {
+                    return false;
                 }
 
-            }
+                for (i = 0; i < expected.length; i++) {
 
-            return false;
+                    if (value === expected[i]) {
+                        return true;
+                    }
 
-        case "greaterThan":
+                }
 
-            number = parseFloat(value);
-            expectedNumber = parseFloat(expected);
+                return false;
 
-            return number > expectedNumber;
+            case "greaterThan":
 
-        case "greaterOrEqual":
+                number = parseFloat(value);
+                expectedNumber = parseFloat(expected);
 
-            number = parseFloat(value);
-            expectedNumber = parseFloat(expected);
+                return number > expectedNumber;
 
-            return number >= expectedNumber;
+            case "greaterOrEqual":
 
-        case "lessThan":
+                number = parseFloat(value);
+                expectedNumber = parseFloat(expected);
 
-            number = parseFloat(value);
-            expectedNumber = parseFloat(expected);
+                return number >= expectedNumber;
 
-            return number < expectedNumber;
+            case "lessThan":
 
-        case "lessOrEqual":
+                number = parseFloat(value);
+                expectedNumber = parseFloat(expected);
 
-            number = parseFloat(value);
-            expectedNumber = parseFloat(expected);
+                return number < expectedNumber;
 
-            return number <= expectedNumber;
+            case "lessOrEqual":
 
-        default:
-            return false;
+                number = parseFloat(value);
+                expectedNumber = parseFloat(expected);
 
-    }
+                return number <= expectedNumber;
 
-},
+            default:
+                return false;
+
+        }
+
+    },
 
     /**
      * Shows groups.
