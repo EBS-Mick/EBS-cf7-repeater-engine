@@ -40,11 +40,9 @@ EBSRepeater.rules = {
         rule = this.config[category];
 
         if (!rule) {
-
+            groups = EBSRepeater.utils.unique(groups);
             this.hideAll(row, []);
-
             return;
-
         }
 
         groups = this.getGroups(row, rule);

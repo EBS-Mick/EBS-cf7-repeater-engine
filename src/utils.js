@@ -43,6 +43,28 @@ EBSRepeater.utils = {
         return Array.prototype.slice.call(list);
 
     },
+    /**
+     * Removes duplicate values.
+     *
+     * @param {Array} array
+     * @returns {Array}
+     */
+    unique: function (array) {
+
+        var result = [];
+        var i;
+
+        for (i = 0; i < array.length; i++) {
+
+            if (result.indexOf(array[i]) === -1) {
+                result.push(array[i]);
+            }
+
+        }
+
+        return result;
+
+    },
 
     /**
      * Trim string.
