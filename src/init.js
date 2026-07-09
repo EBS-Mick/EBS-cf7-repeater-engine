@@ -24,7 +24,7 @@ EBSRepeater.init = function (config) {
 
     EBSRepeater.debug.init();
     EBSRepeater.events.bind();
-    EBSRepeater.observer.start();
+    //EBSRepeater.observer.start();
 
     this.refresh();
 

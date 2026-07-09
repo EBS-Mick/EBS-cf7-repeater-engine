@@ -30,6 +30,7 @@ EBSRepeater.rules = {
         var category;
         var rule;
         var groups;
+        var i;
 
         if (!row) {
             return;
@@ -40,12 +41,30 @@ EBSRepeater.rules = {
         rule = this.config[category];
 
         if (!rule) {
-            groups = EBSRepeater.utils.unique(groups);
+
             this.hideAll(row, []);
+
             return;
+
         }
 
-        groups = this.getGroups(row, rule);
+        groups = [];
+
+        if (!EBSRepeater.utils.isArray(rule)) {
+
+            rule = [rule];
+
+        }
+
+        for (i = 0; i < rule.length; i++) {
+
+            groups = groups.concat(
+                this.getGroups(row, rule[i])
+            );
+
+        }
+
+        groups = EBSRepeater.utils.unique(groups);
 
         this.hideAll(row, groups);
 
