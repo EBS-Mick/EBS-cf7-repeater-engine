@@ -15,6 +15,7 @@ src\debug.js+^
 src\validation.js+^
 src\config.js+^
 src\config-ebs.js+^
+src\submit.js+^
 src\init.js ^
 %OUTPUT%
 

@@ -13,6 +13,10 @@ EBSRepeater.events = {
         this.bindAdd();
         this.bindRemove();
 
+        document.addEventListener("wpcf7beforesubmit", function (event) {
+            EBSRepeater.submit.prepare(event.target);
+        });
+
     },
 
     /**

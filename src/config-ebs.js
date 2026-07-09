@@ -47,6 +47,15 @@ var EBSConfig = {
         { name: "mhe", type: "checkbox" }
 
     ],
+    submit: [
+
+        "your-email",
+        "numCheptel",
+        "dateMarche",
+        "summary",
+        "commentaire"
+
+    ],
     validation: [
 
         {
