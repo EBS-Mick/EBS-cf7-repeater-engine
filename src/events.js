@@ -34,6 +34,11 @@ EBSRepeater.events = {
                 return;
             }
 
+            // Validation des groupes de checkboxes
+            if (event.target.type === "checkbox") {
+                EBSRepeater.validation.normalizeCheckboxGroup(event.target);
+            }
+
             if (event.target.name.indexOf("categorie") !== -1) {
 
                 EBSRepeater.rules.apply(row);

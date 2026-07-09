@@ -12,6 +12,7 @@ src\summary.js+^
 src\events.js+^
 src\observer.js+^
 src\debug.js+^
+src\validation.js+^
 src\config.js+^
 src\config-ebs.js+^
 src\init.js ^

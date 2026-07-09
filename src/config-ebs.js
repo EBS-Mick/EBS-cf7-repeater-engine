@@ -12,7 +12,7 @@ var EBSConfig = {
 
         summaryContainer: "#cf7-summary",
 
-        summarySeparator: "|"
+        summarySeparator: ";"
 
     },
 
@@ -42,10 +42,26 @@ var EBSConfig = {
 
         { name: "race" },
 
-        { name: "fco", type: "checkbox" }
+        { name: "fco", type: "checkbox" },
+
+        { name: "mhe", type: "checkbox" }
 
     ],
+    validation: [
 
+        {
+            field: "fco",
+            requiredWhenVisible: true,
+            exclusive: "Rien"
+        },
+
+        {
+            field: "mhe",
+            requiredWhenVisible: true,
+            exclusive: "Rien"
+        }
+
+    ],
     rules: {
 
         "Baby": {
@@ -65,7 +81,7 @@ var EBSConfig = {
 
         "Broutards": {
 
-            show: ["Broutards1", "FCO"],
+            show: ["Broutards1", "FCO" , "MHE"],
 
             dependencies: [
 
@@ -80,7 +96,7 @@ var EBSConfig = {
 
         "Veaux gras jeunes bovins": {
 
-            show: ["VeauxGras1", "FCO"],
+            show: ["VeauxGras1", "FCO", "MHE"],
 
             dependencies: [
 
@@ -107,7 +123,7 @@ var EBSConfig = {
 
         "Taureaux": {
 
-            show: ["FCO"]
+            show: ["FCO", "MHE"]
 
         },
 

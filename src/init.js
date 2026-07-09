@@ -22,6 +22,10 @@ EBSRepeater.init = function (config) {
         EBSRepeater.summary.setFields(config.summary);
     }
 
+    if (config.validation) {
+        EBSRepeater.validation.set(config.validation);
+    }
+
     EBSRepeater.debug.init();
     EBSRepeater.events.bind();
     //EBSRepeater.observer.start();
