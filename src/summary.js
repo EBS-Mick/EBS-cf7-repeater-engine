@@ -44,15 +44,7 @@ EBSRepeater.summary = {
 
             field = this.fields[i];
 
-            if (field.type === "checkbox") {
-
-                value = EBSRepeater.dom.getCheckedValues(row, field.name);
-
-            } else {
-
-                value = EBSRepeater.dom.getValue(row, field.name);
-
-            }
+            value = this.getValue(row, field);
 
             values.push(value);
 
@@ -91,6 +83,41 @@ EBSRepeater.summary = {
                 this.buildRow(row);
 
         }
+
+    },
+
+    getValue: function (row, field) {
+
+        var value;
+        var i;
+
+        if (field.name) {
+
+            if (field.type === "checkbox") {
+
+                return EBSRepeater.dom.getCheckedValues(row, field.name);
+
+            }
+
+            return EBSRepeater.dom.getValue(row, field.name);
+
+        }
+
+        if (field.fields) {
+
+            for (i = 0; i < field.fields.length; i++) {
+
+                value = EBSRepeater.dom.getValue(row, field.fields[i]);
+
+                if (value !== "") {
+                    return value;
+                }
+
+            }
+
+        }
+
+        return "";
 
     },
 

@@ -19,16 +19,29 @@ var EBSConfig = {
     summary: [
 
         { name: "nombre" },
+
         { name: "categorie" },
-        { name: "categorieBaby" },
-        { name: "sousCategorieBaby" },
-        { name: "categorieBroutards" },
-        { name: "sousCategorieBroutards" },
-        { name: "categorieVeauxGras" },
-        { name: "sousCategorieVeauxGras" },
-        { name: "categoriePetitsVeaux" },
-        { name: "categorieVachesGenisses" },
+
+        {
+            fields: [
+                "categorieBaby",
+                "categorieBroutards",
+                "categorieVeauxGras",
+                "categoriePetitsVeaux",
+                "categorieVachesGenisses"
+            ]
+        },
+
+        {
+            fields: [
+                "sousCategorieBaby",
+                "sousCategorieBroutards",
+                "sousCategorieVeauxGras"
+            ]
+        },
+
         { name: "race" },
+
         { name: "fco", type: "checkbox" }
 
     ],
