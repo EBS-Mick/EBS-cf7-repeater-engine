@@ -3,35 +3,22 @@ EBSRepeater.submit = {
     fields: [],
 
     set: function (fields) {
-
         this.fields = fields || [];
-
     },
 
+    prepare: function (event) {
 
-    prepare: function (form) {
+        var allowed = this.fields;
 
-        var allowed;
-        var elements;
-        var i;
+        event.detail.inputs = event.detail.inputs.filter(function (input) {
 
-        allowed = this.fields;
-
-        elements = form.querySelectorAll("input, select, textarea");
-
-        for (i = 0; i < elements.length; i++) {
-
-            if (allowed.indexOf(elements[i].name) !== -1) {
-                continue;
+            if (input.name.indexOf("_wpcf7") === 0) {
+                return true;
             }
 
-            if (elements[i].name.indexOf("_wpcf7") === 0) {
-                continue;
-            }
+            return allowed.indexOf(input.name) !== -1;
 
-            elements[i].disabled = true;
-
-        }
+        });
 
     }
 

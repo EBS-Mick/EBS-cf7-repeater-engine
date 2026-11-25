@@ -13,10 +13,19 @@ EBSRepeater.events = {
         this.bindAdd();
         this.bindRemove();
 
-        document.addEventListener("wpcf7beforesubmit", function (event) {
-            EBSRepeater.submit.prepare(event.target);
-        });
-
+        document.addEventListener("submit", function (event) {
+            var form = event.target;
+            if (!form.classList.contains("wpcf7-form")) {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            if (!EBSRepeater.validation.validate(form)) {
+                return;
+            }
+            EBSRepeater.transport.send(form);
+        }, true);
     },
 
     /**
@@ -65,6 +74,7 @@ EBSRepeater.events = {
             var button;
             var repeater;
             var rows;
+            var row;
             var previousRow;
             var toggle;
 
@@ -74,13 +84,31 @@ EBSRepeater.events = {
                 return;
             }
 
-            setTimeout(function () {
+            repeater = button.closest(".cf7-repeater");
 
-                repeater = button.closest(".cf7-repeater");
+            if (!repeater) {
+                return;
+            }
 
-                if (!repeater) {
-                    return;
+            rows = repeater.querySelectorAll(".repeater-field-item");
+
+            if (rows.length) {
+
+                row = rows[rows.length - 1];
+
+                if (!EBSRepeater.validation.validateRow(row)) {
+
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+
+                    return false;
+
                 }
+
+            }
+
+            setTimeout(function () {
 
                 rows = repeater.querySelectorAll(".repeater-field-item");
 
@@ -103,7 +131,7 @@ EBSRepeater.events = {
 
             }, 300);
 
-        });
+        }, true);
 
     },
 

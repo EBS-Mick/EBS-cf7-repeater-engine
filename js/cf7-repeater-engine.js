@@ -254,6 +254,24 @@ EBSRepeater.dom = {
 
     },
 
+    isGroupVisible: function (input) {
+
+        var group;
+
+        if (!input) {
+            return true;
+        }
+
+        group = input.closest(".cf-group");
+
+        if (!group) {
+            return true;
+        }
+
+        return group.classList.contains("cf-active");
+
+    },
+
     /**
      * Resets all fields inside a group.
      *
@@ -299,6 +317,30 @@ EBSRepeater.dom = {
             );
 
         }
+
+    },
+
+    getInputs: function (fieldName, container) {
+
+        container = container || document;
+
+        return container.querySelectorAll(
+            'input[name="' + fieldName + '[]"],' +
+            'input[name="' + fieldName + '[][]"],' +
+            'input[name="' + fieldName + '"],' +
+            'select[name="' + fieldName + '[]"],' +
+            'select[name="' + fieldName + '"],' +
+            'textarea[name="' + fieldName + '[]"],' +
+            'textarea[name="' + fieldName + '"]'
+        );
+
+    },
+
+    getInput: function (fieldName, container) {
+
+        var inputs = this.getInputs(fieldName, container);
+
+        return inputs.length ? inputs[0] : null;
 
     }
 
@@ -800,10 +842,19 @@ EBSRepeater.events = {
         this.bindAdd();
         this.bindRemove();
 
-        document.addEventListener("wpcf7beforesubmit", function (event) {
-            EBSRepeater.submit.prepare(event.target);
-        });
-
+        document.addEventListener("submit", function (event) {
+            var form = event.target;
+            if (!form.classList.contains("wpcf7-form")) {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            if (!EBSRepeater.validation.validate(form)) {
+                return;
+            }
+            EBSRepeater.transport.send(form);
+        }, true);
     },
 
     /**
@@ -852,6 +903,7 @@ EBSRepeater.events = {
             var button;
             var repeater;
             var rows;
+            var row;
             var previousRow;
             var toggle;
 
@@ -861,13 +913,31 @@ EBSRepeater.events = {
                 return;
             }
 
-            setTimeout(function () {
+            repeater = button.closest(".cf7-repeater");
 
-                repeater = button.closest(".cf7-repeater");
+            if (!repeater) {
+                return;
+            }
 
-                if (!repeater) {
-                    return;
+            rows = repeater.querySelectorAll(".repeater-field-item");
+
+            if (rows.length) {
+
+                row = rows[rows.length - 1];
+
+                if (!EBSRepeater.validation.validateRow(row)) {
+
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+
+                    return false;
+
                 }
+
+            }
+
+            setTimeout(function () {
 
                 rows = repeater.querySelectorAll(".repeater-field-item");
 
@@ -890,7 +960,7 @@ EBSRepeater.events = {
 
             }, 300);
 
-        });
+        }, true);
 
     },
 
@@ -1053,37 +1123,106 @@ EBSRepeater.debug = {
 
     },
 
-    validate: function () {
+    /* validate: function (container) {
 
+        var rows;
         var i;
+        var j;
 
-        for (i = 0; i < this.rules.length; i++) {
+        container = container || document;
 
-            if (!this.validateRule(this.rules[i])) {
-                return false;
+        if (container.classList.contains("repeater-field-item")) {
+            rows = [container];
+        } else {
+            rows = container.querySelectorAll(".repeater-field-item");
+        }
+
+        for (i = 0; i < rows.length; i++) {
+
+            for (j = 0; j < this.rules.length; j++) {
+
+                if (!this.validateRule(this.rules[j], rows[i])) {
+                    return false;
+                }
+
             }
 
         }
 
         return true;
 
-    },
+    }, */
+    
+    validate: function (container) {
+        var rows;
+        var i;
 
-    isExclusiveGroup: function (name) {
+        rows = container.querySelectorAll(".repeater-field-item");
 
-    var i;
+        for (i = 0; i < rows.length; i++) {
 
-    for (i = 0; i < this.rules.length; i++) {
-
-        if (name.indexOf(this.rules[i].field) !== -1) {
-            return this.rules[i];
+            if (!this.validateRow(rows[i])) {
+                return false;
+            }
         }
 
-    }
+        return true;
+    },
 
-    return null;
+    validateRow: function (row) {
+        var requiredFields;
+        var field;
+        var i;
+        var j;
 
-},
+        if (!row) {
+            return true;
+        }
+
+        /*
+        * Champs CF7 obligatoires : select*, number*, etc.
+        */
+        requiredFields = row.querySelectorAll(
+            "input[aria-required='true'], " +
+            "select[aria-required='true'], " +
+            "textarea[aria-required='true']"
+        );
+
+        for (i = 0; i < requiredFields.length; i++) {
+
+            field = requiredFields[i];
+
+            if (field.type === "checkbox" || field.type === "radio") {
+
+                if (!row.querySelector(
+                    '[name="' + field.name + '"]:checked'
+                )) {
+                    alert("Le champ « " + field.name + " » est obligatoire.");
+                    field.focus();
+                    return false;
+                }
+
+            } else if (field.value === "") {
+
+                alert("Le champ « " + field.name + " » est obligatoire.");
+                field.focus();
+                return false;
+            }
+        }
+
+        /*
+        * Règles personnalisées :
+        * catégories, sous-catégories, FCO, MHE...
+        */
+        for (j = 0; j < this.rules.length; j++) {
+
+            if (!this.validateRule(this.rules[j], row)) {
+                return false;
+            }
+        }
+
+        return true;
+    },
 
     normalizeCheckboxGroup: function (checkbox) {
 
@@ -1091,6 +1230,8 @@ EBSRepeater.debug = {
         var rule;
         var allCheckboxes;
         var checkboxes;
+        var exclusive;
+        var isExclusive;
         var i;
 
         row = EBSRepeater.dom.getRow(checkbox);
@@ -1099,9 +1240,9 @@ EBSRepeater.debug = {
             return;
         }
 
-        rule = this.isExclusiveGroup(checkbox.name);
+        rule = EBSRepeater.validation.isExclusiveGroup(checkbox.name);
 
-        if (!rule) {
+        if (!rule || !rule.exclusive) {
             return;
         }
 
@@ -1116,7 +1257,20 @@ EBSRepeater.debug = {
 
         }
 
-        if (checkbox.value === rule.exclusive && checkbox.checked) {
+        if (!checkbox.checked) {
+            return;
+        }
+
+        exclusive = EBSRepeater.utils.isArray(rule.exclusive)
+            ? rule.exclusive
+            : [rule.exclusive];
+
+        isExclusive = exclusive.indexOf(checkbox.value) !== -1;
+
+        if (isExclusive) {
+
+            // Une valeur exclusive est cochée :
+            // on décoche toutes les autres.
 
             for (i = 0; i < checkboxes.length; i++) {
 
@@ -1126,11 +1280,16 @@ EBSRepeater.debug = {
 
             }
 
-        } else if (checkbox.checked) {
+        } else {
+
+            // Une valeur normale est cochée :
+            // on décoche toutes les valeurs exclusives.
 
             for (i = 0; i < checkboxes.length; i++) {
 
-                if (checkboxes[i].value === rule.exclusive) {
+                if (
+                    exclusive.indexOf(checkboxes[i].value) !== -1
+                ) {
                     checkboxes[i].checked = false;
                 }
 
@@ -1140,36 +1299,56 @@ EBSRepeater.debug = {
 
     },
 
-    validateRule: function (rule) {
+   validateRule: function (rule, row) {
 
         var group;
         var inputs;
-        var checked = [];
+        var checked;
         var i;
 
-        group = document.querySelector('[data-group="FCO"]');
+        if (rule.group) {
 
-        if (!group) {
+            group = EBSRepeater.dom.getGroup(row, rule.group);
+
+            if (!group) {
+                return true;
+            }
+
+            if (group.style.display === "none") {
+                return true;
+            }
+
+        }
+
+        inputs = EBSRepeater.dom.getInputs(rule.field, row);
+
+        if (!inputs.length) {
             return true;
         }
 
-        if (group.offsetParent === null) {
-            return true;
-        }
-
-        inputs = group.querySelectorAll('input[type="checkbox"]');
+        checked = [];
 
         for (i = 0; i < inputs.length; i++) {
 
-            if (inputs[i].checked) {
-                checked.push(inputs[i].value);
+            if (inputs[i].type === "checkbox") {
+
+                if (inputs[i].checked) {
+                    checked.push(inputs[i].value);
+                }
+
+            } else {
+
+                if (inputs[i].value !== "") {
+                    checked.push(inputs[i].value);
+                }
+
             }
 
         }
 
         if (rule.requiredWhenVisible && checked.length === 0) {
 
-            alert("Veuillez sélectionner une valeur FCO.");
+            alert(rule.errorMessageRequiredWhenVisible || "Veuillez sélectionner une valeur.");
 
             return false;
 
@@ -1177,12 +1356,28 @@ EBSRepeater.debug = {
 
         if (rule.exclusive) {
 
+            var exclusive = EBSRepeater.utils.isArray(rule.exclusive)
+                ? rule.exclusive
+                : [rule.exclusive];
+
+            var exclusiveCount = 0;
+
+            for (i = 0; i < exclusive.length; i++) {
+
+                if (checked.indexOf(exclusive[i]) !== -1) {
+                    exclusiveCount++;
+                }
+
+            }
+
             if (
-                checked.indexOf(rule.exclusive) !== -1 &&
-                checked.length > 1
+                (exclusiveCount > 0 && checked.length > 1) ||
+                exclusiveCount > 1
             ) {
 
-                alert("\"Rien\" ne peut pas être sélectionné avec une autre valeur.");
+                alert(
+                    "Les valeurs exclusives ne peuvent pas être sélectionnées avec une autre valeur."
+                );
 
                 return false;
 
@@ -1192,8 +1387,22 @@ EBSRepeater.debug = {
 
         return true;
 
-    }
+    },
+    isExclusiveGroup: function (name) {
 
+        var i;
+
+        for (i = 0; i < this.rules.length; i++) {
+
+            if (name.indexOf(this.rules[i].field) !== -1) {
+                return this.rules[i];
+            }
+
+        }
+
+        return null;
+
+    },
 };EBSRepeater.config = {
 
     debug: false,
@@ -1207,27 +1416,16 @@ EBSRepeater.debug = {
 };/*
  * EBS configuration
  */
-
 var EBSConfig = {
-
     config: {
-
         debug: false,
-
         summaryField: "summary",
-
         summaryContainer: "#cf7-summary",
-
         summarySeparator: ";"
-
     },
-
     summary: [
-
         { name: "nombre" },
-
         { name: "categorie" },
-
         {
             fields: [
                 "categorieBaby",
@@ -1237,147 +1435,247 @@ var EBSConfig = {
                 "categorieVachesGenisses"
             ]
         },
-
         {
             fields: [
                 "sousCategorieBaby",
                 "sousCategorieBroutards",
-                "sousCategorieVeauxGras"
+                "sousCategorieVeauxGras",
+                "sousCategoriePetitsVeaux"
             ]
         },
-
         { name: "race" },
-
-        { name: "fco", type: "checkbox" },
-
-        { name: "mhe", type: "checkbox" }
-
+        { name: "fcovac", type: "checkbox" },
+        { name: "fcopcr", type: "checkbox" },
+        { name: "mhe", type: "checkbox" },
+        { name: "commentaire" }
     ],
+    submit: {
+        fields: [
+            "your-email",
+            "user_id",
+            "numCheptel",
+            "dateMarche",
+            "summary",
+            "commentaire"
+        ]
+    },
     validation: [
-
         {
-            field: "fco",
+            field: "fcovac",
+            group: "FCOvac",
             requiredWhenVisible: true,
-            exclusive: "Rien"
+            errorMessageRequiredWhenVisible:"Vaccination FCO : selection obligatoire",
+            exclusive: "Non vacciné"
         },
-
+        {
+            field: "fcopcr",
+            group: "FCOpcr",
+            requiredWhenVisible: true,
+            errorMessageRequiredWhenVisible:"Teste (PCR) FCO : selection obligatoire",
+            exclusive: "Non testé"
+        },
         {
             field: "mhe",
+            group: "MHE",
             requiredWhenVisible: true,
-            exclusive: "Rien"
-        }
-
+            errorMessageRequiredWhenVisible:"Vaccination MHE : selection obligatoire",
+            exclusive: ["+ 60 jours", "- 60 jours", "PCR", "Rien"]
+        },
+        {
+            field: "categorieBaby",
+            group: "Baby1",
+            requiredWhenVisible: true,
+            errorMessageRequiredWhenVisible:"Catégorie : selection du sex obligatoire",
+        },
+        {
+            field: "sousCategorieBaby",
+            group: "Baby2",
+            requiredWhenVisible: true,
+            errorMessageRequiredWhenVisible:"Catégorie : selection de la tranche d'age obligatoire",
+        },
+        {
+            field: "categorieBroutards",
+            group: "Broutards1",
+            requiredWhenVisible: true,
+            errorMessageRequiredWhenVisible:"Catégorie : selection du sex obligatoire",
+        },
+        {
+            field: "sousCategorieBroutards",
+            group: "Broutards2",
+            requiredWhenVisible: true,
+            errorMessageRequiredWhenVisible:"Catégorie : selection de la tranche de poids obligatoire",
+        },
+        {
+            field: "categorieVeauxGras",
+            group: "VeauxGras1",
+            requiredWhenVisible: true,
+            errorMessageRequiredWhenVisible:"Catégorie : selection du sex obligatoire",
+        },
+        {
+            field: "sousCategorieVeauxGras",
+            group: "VeauxGras2",
+            requiredWhenVisible: true,
+            errorMessageRequiredWhenVisible:"Catégorie : selection de la tranche d' age obligatoire",
+        },
+        {
+            field: "categoriePetitsVeaux",
+            group: "PetitsVeaux1",
+            requiredWhenVisible: true,
+            errorMessageRequiredWhenVisible:"Catégorie : selection du sex obligatoire",
+        },
+        {
+            field: "sousCategoriePetitsVeaux",
+            group: "PetitsVeaux2",
+            requiredWhenVisible: true,
+            errorMessageRequiredWhenVisible:"Catégorie : selection type de petit veaux obligatoire",
+        },
+        {
+            field: "categorieVachesGenisses",
+            group: "VachesGenisses1",
+            requiredWhenVisible: true,
+            errorMessageRequiredWhenVisible:"Catégorie : selection type de génisse obligatoire",
+        },
     ],
     rules: {
-
         "Baby": {
-
             show: ["Baby1"],
-
             dependencies: [
-
                 {
                     field: "categorieBaby",
                     show: ["Baby2"]
                 }
-
             ]
-
         },
-
         "Broutards": {
-
-            show: ["Broutards1", "FCO" , "MHE"],
-
+            show: ["Broutards1", "FCOvac" , "FCOpcr", "MHE"],
             dependencies: [
-
                 {
                     field: "categorieBroutards",
                     show: ["Broutards2"]
                 }
-
             ]
-
         },
-
         "Veaux gras jeunes bovins": {
-
-            show: ["VeauxGras1", "FCO", "MHE"],
-
+            show: ["VeauxGras1"],
             dependencies: [
-
                 {
                     field: "categorieVeauxGras",
                     show: ["VeauxGras2"]
                 }
-
             ]
-
         },
-
         "Petits veaux": {
-
-            show: ["PetitsVeaux1"]
-
+            show: ["PetitsVeaux1"],
+            dependencies: [
+                {
+                    field: "categoriePetitsVeaux",
+                    show: ["PetitsVeaux2"]
+                }
+            ]
         },
-
         "Vaches et génisses +24M": {
-
             show: ["VachesGenisses1"]
-
         },
-
         "Taureaux": {
-
-            show: ["FCO", "MHE"]
-
+            show: ["FCOvac" , "FCOpcr", "MHE"]
         },
-
         "Vache suitée": {
-
             show: []
-
         }
-
     }
-
 };EBSRepeater.submit = {
 
     fields: [],
 
     set: function (fields) {
-
         this.fields = fields || [];
-
     },
 
+    prepare: function (event) {
 
-    prepare: function (form) {
+        var allowed = this.fields;
 
-        var allowed;
-        var elements;
-        var i;
+        event.detail.inputs = event.detail.inputs.filter(function (input) {
 
-        allowed = this.fields;
-
-        elements = form.querySelectorAll("input, select, textarea");
-
-        for (i = 0; i < elements.length; i++) {
-
-            if (allowed.indexOf(elements[i].name) !== -1) {
-                continue;
+            if (input.name.indexOf("_wpcf7") === 0) {
+                return true;
             }
 
-            if (elements[i].name.indexOf("_wpcf7") === 0) {
-                continue;
-            }
+            return allowed.indexOf(input.name) !== -1;
 
-            elements[i].disabled = true;
-
-        }
+        });
 
     }
 
+};EBSRepeater.transport = {
+
+    send: function (form) {
+
+        var data;
+        var action;
+        var field;
+        var value;
+        var i;
+
+        console.log("EBS transport");
+
+        data = new FormData();
+
+        // Champs techniques CF7
+        [
+            "_wpcf7",
+            "_wpcf7_version",
+            "_wpcf7_locale",
+            "_wpcf7_unit_tag",
+            "_wpcf7_container_post",
+            "_wpcf7_posted_data_hash"
+        ].forEach(function (name) {
+
+            field = form.querySelector('[name="' + name + '"]');
+
+            if (field) {
+                data.append(name, field.value);
+            }
+
+        });
+
+        // Champs métier
+        EBSRepeater.submit.fields.forEach(function (name) {
+
+            field = form.querySelector('[name="' + name + '"]');
+
+            if (!field) {
+                return;
+            }
+
+            value = field.value;
+
+            if (field.type === "checkbox") {
+                value = field.checked ? field.value : "";
+            }
+            data.append(name, value);
+        });
+
+        fetch(window.location.origin + "/segali/wp-admin/admin-ajax.php?action=ebs_cf7_submit", {
+            method: "POST",
+            body: data,
+            credentials: "same-origin"
+        })
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (json) {
+            if (json.success) {
+                alert(json.data.message);
+                window.location.reload();
+                return;
+            }
+            alert(json.data.message || "Une erreur est survenue.");
+        })
+        .catch(function () {
+            alert("Impossible de contacter le serveur.");
+        });
+    }
 };/*
  * Engine initialization
  */
@@ -1407,8 +1705,10 @@ EBSRepeater.init = function (config) {
     }
 
     if (config.submit) {
-        EBSRepeater.submit.set(config.submit);
+        EBSRepeater.submit.set(config.submit.fields);
     }
+
+    
 
     EBSRepeater.debug.init();
     EBSRepeater.events.bind();

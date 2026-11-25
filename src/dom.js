@@ -140,6 +140,24 @@ EBSRepeater.dom = {
 
     },
 
+    isGroupVisible: function (input) {
+
+        var group;
+
+        if (!input) {
+            return true;
+        }
+
+        group = input.closest(".cf-group");
+
+        if (!group) {
+            return true;
+        }
+
+        return group.classList.contains("cf-active");
+
+    },
+
     /**
      * Resets all fields inside a group.
      *
@@ -185,6 +203,30 @@ EBSRepeater.dom = {
             );
 
         }
+
+    },
+
+    getInputs: function (fieldName, container) {
+
+        container = container || document;
+
+        return container.querySelectorAll(
+            'input[name="' + fieldName + '[]"],' +
+            'input[name="' + fieldName + '[][]"],' +
+            'input[name="' + fieldName + '"],' +
+            'select[name="' + fieldName + '[]"],' +
+            'select[name="' + fieldName + '"],' +
+            'textarea[name="' + fieldName + '[]"],' +
+            'textarea[name="' + fieldName + '"]'
+        );
+
+    },
+
+    getInput: function (fieldName, container) {
+
+        var inputs = this.getInputs(fieldName, container);
+
+        return inputs.length ? inputs[0] : null;
 
     }
 

@@ -8,37 +8,106 @@ EBSRepeater.validation = {
 
     },
 
-    validate: function () {
+    /* validate: function (container) {
 
+        var rows;
         var i;
+        var j;
 
-        for (i = 0; i < this.rules.length; i++) {
+        container = container || document;
 
-            if (!this.validateRule(this.rules[i])) {
-                return false;
+        if (container.classList.contains("repeater-field-item")) {
+            rows = [container];
+        } else {
+            rows = container.querySelectorAll(".repeater-field-item");
+        }
+
+        for (i = 0; i < rows.length; i++) {
+
+            for (j = 0; j < this.rules.length; j++) {
+
+                if (!this.validateRule(this.rules[j], rows[i])) {
+                    return false;
+                }
+
             }
 
         }
 
         return true;
 
-    },
+    }, */
+    
+    validate: function (container) {
+        var rows;
+        var i;
 
-    isExclusiveGroup: function (name) {
+        rows = container.querySelectorAll(".repeater-field-item");
 
-    var i;
+        for (i = 0; i < rows.length; i++) {
 
-    for (i = 0; i < this.rules.length; i++) {
-
-        if (name.indexOf(this.rules[i].field) !== -1) {
-            return this.rules[i];
+            if (!this.validateRow(rows[i])) {
+                return false;
+            }
         }
 
-    }
+        return true;
+    },
 
-    return null;
+    validateRow: function (row) {
+        var requiredFields;
+        var field;
+        var i;
+        var j;
 
-},
+        if (!row) {
+            return true;
+        }
+
+        /*
+        * Champs CF7 obligatoires : select*, number*, etc.
+        */
+        requiredFields = row.querySelectorAll(
+            "input[aria-required='true'], " +
+            "select[aria-required='true'], " +
+            "textarea[aria-required='true']"
+        );
+
+        for (i = 0; i < requiredFields.length; i++) {
+
+            field = requiredFields[i];
+
+            if (field.type === "checkbox" || field.type === "radio") {
+
+                if (!row.querySelector(
+                    '[name="' + field.name + '"]:checked'
+                )) {
+                    alert("Le champ « " + field.name + " » est obligatoire.");
+                    field.focus();
+                    return false;
+                }
+
+            } else if (field.value === "") {
+
+                alert("Le champ « " + field.name + " » est obligatoire.");
+                field.focus();
+                return false;
+            }
+        }
+
+        /*
+        * Règles personnalisées :
+        * catégories, sous-catégories, FCO, MHE...
+        */
+        for (j = 0; j < this.rules.length; j++) {
+
+            if (!this.validateRule(this.rules[j], row)) {
+                return false;
+            }
+        }
+
+        return true;
+    },
 
     normalizeCheckboxGroup: function (checkbox) {
 
@@ -46,6 +115,8 @@ EBSRepeater.validation = {
         var rule;
         var allCheckboxes;
         var checkboxes;
+        var exclusive;
+        var isExclusive;
         var i;
 
         row = EBSRepeater.dom.getRow(checkbox);
@@ -54,9 +125,9 @@ EBSRepeater.validation = {
             return;
         }
 
-        rule = this.isExclusiveGroup(checkbox.name);
+        rule = EBSRepeater.validation.isExclusiveGroup(checkbox.name);
 
-        if (!rule) {
+        if (!rule || !rule.exclusive) {
             return;
         }
 
@@ -71,7 +142,20 @@ EBSRepeater.validation = {
 
         }
 
-        if (checkbox.value === rule.exclusive && checkbox.checked) {
+        if (!checkbox.checked) {
+            return;
+        }
+
+        exclusive = EBSRepeater.utils.isArray(rule.exclusive)
+            ? rule.exclusive
+            : [rule.exclusive];
+
+        isExclusive = exclusive.indexOf(checkbox.value) !== -1;
+
+        if (isExclusive) {
+
+            // Une valeur exclusive est cochée :
+            // on décoche toutes les autres.
 
             for (i = 0; i < checkboxes.length; i++) {
 
@@ -81,11 +165,16 @@ EBSRepeater.validation = {
 
             }
 
-        } else if (checkbox.checked) {
+        } else {
+
+            // Une valeur normale est cochée :
+            // on décoche toutes les valeurs exclusives.
 
             for (i = 0; i < checkboxes.length; i++) {
 
-                if (checkboxes[i].value === rule.exclusive) {
+                if (
+                    exclusive.indexOf(checkboxes[i].value) !== -1
+                ) {
                     checkboxes[i].checked = false;
                 }
 
@@ -95,36 +184,56 @@ EBSRepeater.validation = {
 
     },
 
-    validateRule: function (rule) {
+   validateRule: function (rule, row) {
 
         var group;
         var inputs;
-        var checked = [];
+        var checked;
         var i;
 
-        group = document.querySelector('[data-group="FCO"]');
+        if (rule.group) {
 
-        if (!group) {
+            group = EBSRepeater.dom.getGroup(row, rule.group);
+
+            if (!group) {
+                return true;
+            }
+
+            if (group.style.display === "none") {
+                return true;
+            }
+
+        }
+
+        inputs = EBSRepeater.dom.getInputs(rule.field, row);
+
+        if (!inputs.length) {
             return true;
         }
 
-        if (group.offsetParent === null) {
-            return true;
-        }
-
-        inputs = group.querySelectorAll('input[type="checkbox"]');
+        checked = [];
 
         for (i = 0; i < inputs.length; i++) {
 
-            if (inputs[i].checked) {
-                checked.push(inputs[i].value);
+            if (inputs[i].type === "checkbox") {
+
+                if (inputs[i].checked) {
+                    checked.push(inputs[i].value);
+                }
+
+            } else {
+
+                if (inputs[i].value !== "") {
+                    checked.push(inputs[i].value);
+                }
+
             }
 
         }
 
         if (rule.requiredWhenVisible && checked.length === 0) {
 
-            alert("Veuillez sélectionner une valeur FCO.");
+            alert(rule.errorMessageRequiredWhenVisible || "Veuillez sélectionner une valeur.");
 
             return false;
 
@@ -132,12 +241,28 @@ EBSRepeater.validation = {
 
         if (rule.exclusive) {
 
+            var exclusive = EBSRepeater.utils.isArray(rule.exclusive)
+                ? rule.exclusive
+                : [rule.exclusive];
+
+            var exclusiveCount = 0;
+
+            for (i = 0; i < exclusive.length; i++) {
+
+                if (checked.indexOf(exclusive[i]) !== -1) {
+                    exclusiveCount++;
+                }
+
+            }
+
             if (
-                checked.indexOf(rule.exclusive) !== -1 &&
-                checked.length > 1
+                (exclusiveCount > 0 && checked.length > 1) ||
+                exclusiveCount > 1
             ) {
 
-                alert("\"Rien\" ne peut pas être sélectionné avec une autre valeur.");
+                alert(
+                    "Les valeurs exclusives ne peuvent pas être sélectionnées avec une autre valeur."
+                );
 
                 return false;
 
@@ -147,6 +272,20 @@ EBSRepeater.validation = {
 
         return true;
 
-    }
+    },
+    isExclusiveGroup: function (name) {
 
+        var i;
+
+        for (i = 0; i < this.rules.length; i++) {
+
+            if (name.indexOf(this.rules[i].field) !== -1) {
+                return this.rules[i];
+            }
+
+        }
+
+        return null;
+
+    },
 };
